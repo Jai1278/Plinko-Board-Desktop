@@ -1,0 +1,73 @@
+body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222;
+        }
+
+        canvas {
+            background-color: #333;
+            border: 1px solid #ccc;
+            margin-right: 200px; /* Margin to move canvas 100px from the right */
+        }
+
+        .title {
+            position: absolute;
+            top: 200px; /* Adjusted for higher positioning */
+            right: 160px; /* Adjusted for right positioning */
+            color: #fff;
+            font-size: 64px; /* Increased font size */
+            margin: 0;
+            padding: 30px 40px;
+            background-color: #444;
+            border-radius: 3px;
+            border: 1px solid #fff;
+        }
+
+        .controls-container {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin-top: 400px; /* Adjust as needed for vertical positioning */
+            margin-right: 180px; /* Adjust as needed for horizontal positioning */
+            text-align: center;
+        }
+
+        .controls-container input[type="number"] {
+            width: 125px;
+            padding: 10px;
+            border: 1px solid #fff;
+            border-radius: 3px;
+            background-color: #444;
+            color: #fff;
+            text-align: center;
+            -moz-appearance: textfield; /* Firefox */
+        }
+
+        /* Chrome, Safari, Edge, Opera */
+        .controls-container input[type="number"]::-webkit-outer-spin-button,
+        .controls-container input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Firefox */
+        .controls-container input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .controls-container button {
+            padding: 10px 20px;
+            border: 1px solid #fff;
+            border-radius: 3px;
+            background-color: #444;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .controls-container button:hover {
+            background-color: #555;
+        }
