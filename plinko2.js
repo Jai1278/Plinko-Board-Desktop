@@ -1,9 +1,9 @@
 // Title: Plinko Board 
 // Author: Jai Janse
 // Version: 2.0
-// Date: 3/07//24
-// Game Info : To create a Plinko Board style game that allows balls to have gravity and freely fallthough the board
-//and can make contact with pegs and get collected in a colletion system at the bottom called slots.
+// Date: 3/07/24
+// Game Info : To create a Plinko Board style game that allows balls to have gravity and freely fall through the board
+// and can make contact with pegs and get collected in a collection system at the bottom called slots.
 
 // Constants
 const BALL_RADIUS = 7;
@@ -17,11 +17,13 @@ const SLOT_HEIGHT = 50; // Adjusted for proper slot height
 const SLOT_COUNT = 10; // Number of slots at the bottom
 
 // Constants for gravity and other physics
-const GRAVITY = 0.35; // Increased for more lifelike gravity
-const FRICTION = 0.75; // Slightly adjusted friction
-const SLOT_BOUNCE_REDUCTION = 0.5; // Reduced sensitivity for slot collisions
+const GRAVITY = 600; // Pixels per second squared for realistic gravity
+const FRICTION = 0.75; // Friction coefficient for ball movement
+const SLOT_BOUNCE_REDUCTION = 0.3; // Bounce reduction for slots
+const BALL_INITIAL_DY = 0.2; // Initial downward speed for balls
+const COLLISION_TOLERANCE = 1; // Lower tolerance for collision detection
 
-// Utility function to generate random number within a range
+// Utility function to generate a random number within a range
 function randomRange(min, max) {
     return min + Math.random() * (max - min);
 }
@@ -51,77 +53,76 @@ class Ball {
         this.y = y;
         this.radius = BALL_RADIUS;
         this.dx = 0;
-        this.dy = 1.0; // Increased initial speed downward
+        this.dy = BALL_INITIAL_DY; // Initial speed downward
         this.color = `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`;
         this.caught = false;
     }
 
     // Update ball position and handle collisions
-    update() {
-        if (this.caught) return; // If ball is caught in a slot, do not update its position
+    update(timeDelta) {
+        if (this.caught) {
+            return; // If ball is caught in a slot, do not update its position
+        }
 
         // Apply gravity
-        this.dy += GRAVITY;
+        this.dy += GRAVITY * timeDelta; // Update vertical speed
 
-        // Number of substeps for better collision detection
-        const substeps = 5;
-        const stepX = this.dx / substeps;
-        const stepY = this.dy / substeps;
+        // Update position
+        this.x += this.dx * timeDelta;
+        this.y += this.dy * timeDelta;
 
-        for (let i = 0; i < substeps; i++) {
-            // Check collision with pegs
-            for (let row = 0; row < NUM_ROWS; row++) {
-                for (let col = 0; col < NUM_COLS; col++) {
-                    const peg = pegs[row][col];
-                    const dx = this.x - peg.x;
-                    const dy = this.y - peg.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < this.radius + peg.radius) {
-                        // Ball hits a peg, change direction randomly
-                        const angle = Math.atan2(dy, dx);
-                        const randAngle = angle + randomRange(-Math.PI / 4, Math.PI / 4);
-                        this.dx = Math.cos(randAngle) * 2; // Adjusted for realistic bounce
-                        this.dy = Math.sin(randAngle) * 2; // Adjusted for realistic bounce
-                        break; // Only handle collision with one peg per frame
-                    }
+        // Check collision with pegs
+        for (let row = 0; row < NUM_ROWS; row++) {
+            for (let col = 0; col < NUM_COLS; col++) {
+                const peg = pegs[row][col];
+                const dx = this.x - peg.x;
+                const dy = this.y - peg.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < this.radius + peg.radius + COLLISION_TOLERANCE) {
+                    // Ball hits a peg
+                    const angle = Math.atan2(dy, dx);
+                    const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+                    this.dx = speed * Math.cos(angle + Math.PI / 6); // Adjust for bounce
+                    this.dy = speed * Math.sin(angle + Math.PI / 6); // Adjust for bounce
+                    this.dy *= FRICTION; // Apply friction
+                    this.x = peg.x + (this.radius + peg.radius + COLLISION_TOLERANCE) * Math.cos(angle);
+                    this.y = peg.y + (this.radius + peg.radius + COLLISION_TOLERANCE) * Math.sin(angle);
+                    break; // Only handle collision with one peg per frame
                 }
             }
+        }
 
-            // Update position
-            this.x += stepX;
-            this.y += stepY;
+        // Check canvas boundaries
+        if (this.x - this.radius < 0) {
+            this.x = this.radius;
+            this.dx *= -1; // Reverse direction
+        }
+        if (this.x + this.radius > canvas.width) {
+            this.x = canvas.width - this.radius;
+            this.dx *= -1; // Reverse direction
+        }
 
-            // Check canvas boundaries and keep balls within canvas
-            if (this.x - this.radius < 0) {
-                this.x = this.radius;
-                this.dx *= -1; // Reverse direction
-            }
-            if (this.x + this.radius > canvas.width) {
-                this.x = canvas.width - this.radius;
-                this.dx *= -1; // Reverse direction
-            }
-
-            // Check if ball falls into a slot at the bottom
-            if (this.y + this.radius > canvas.height - SLOT_HEIGHT) {
-                const slotIndex = Math.floor(this.x / SLOT_WIDTH);
-                if (slotIndex >= 0 && slotIndex < SLOT_COUNT) {
-                    const slot = slots[slotIndex];
-                    if (this.x >= slot.x && this.x <= slot.x + slot.width) {
-                        // Collision with slot sides
-                        if (this.x - this.radius < slot.x) {
-                            this.x = slot.x + this.radius;
-                            this.dx *= -SLOT_BOUNCE_REDUCTION;
-                        } else if (this.x + this.radius > slot.x + slot.width) {
-                            this.x = slot.x + slot.width - this.radius;
-                            this.dx *= -SLOT_BOUNCE_REDUCTION;
-                        } else if (this.y + this.radius > canvas.height - slot.height) {
-                            // Collision with slot bottom
-                            if (this.y + this.radius > canvas.height - this.radius) {
-                                this.y = canvas.height - this.radius;
-                                this.dy *= -SLOT_BOUNCE_REDUCTION;
-                            }
+        // Check if ball falls into a slot at the bottom
+        if (this.y + this.radius > canvas.height - SLOT_HEIGHT) {
+            const slotIndex = Math.floor(this.x / SLOT_WIDTH);
+            if (slotIndex >= 0 && slotIndex < SLOT_COUNT) {
+                const slot = slots[slotIndex];
+                if (this.x >= slot.x && this.x <= slot.x + slot.width) {
+                    // Collision with slot sides
+                    if (this.x - this.radius < slot.x) {
+                        this.x = slot.x + this.radius;
+                        this.dx *= -SLOT_BOUNCE_REDUCTION;
+                    } else if (this.x + this.radius > slot.x + slot.width) {
+                        this.x = slot.x + slot.width - this.radius;
+                        this.dx *= -SLOT_BOUNCE_REDUCTION;
+                    } else if (this.y + this.radius > canvas.height - slot.height) {
+                        // Collision with slot bottom
+                        if (this.y + this.radius > canvas.height - this.radius) {
+                            this.y = canvas.height - this.radius;
+                            this.dy *= -SLOT_BOUNCE_REDUCTION;
                         }
                     }
+                    this.caught = true; // Mark ball as caught
                 }
             }
         }
@@ -204,10 +205,21 @@ for (let i = 0; i < SLOT_COUNT; i++) {
     slots.push(new Slot(x, SLOT_WIDTH, SLOT_HEIGHT));
 }
 
+// Function to calculate and display FPS
+function calculateFPS(deltaTime) {
+    let currentFPS = 1 / deltaTime;
+    document.getElementById('fpsValue').textContent = currentFPS.toFixed(1);
+}
+
 // Animation loop
-function animate() {
+let lastTime = 0;
+function animate(timestamp) {
     requestAnimationFrame(animate);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Calculate time delta
+    const timeDelta = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
 
     // Draw pegs
     for (let row = 0; row < NUM_ROWS; row++) {
@@ -221,9 +233,13 @@ function animate() {
 
     // Update and draw each ball
     balls.forEach(ball => {
-        ball.update();
+        ball.update(timeDelta);
     });
+
+    // Calculate and display FPS
+    calculateFPS(timeDelta);
 }
 
 // Start animation
-animate();
+animate(0);
+
