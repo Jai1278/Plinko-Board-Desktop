@@ -207,8 +207,8 @@ for (let i = 0; i < SLOT_COUNT; i++) {
 
 // Function to calculate and display FPS
 function calculateFPS(deltaTime) {
-    let currentFPS = 1 / deltaTime;
-    document.getElementById('fpsValue').textContent = currentFPS.toFixed(1);
+    let FPS = 1 / deltaTime;
+    document.getElementById('fpsValue').textContent = FPS.toFixed(1);
 }
 
 // Animation loop
